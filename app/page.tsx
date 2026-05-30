@@ -1,65 +1,165 @@
-import Image from "next/image";
+// app/page.tsx 親コンポーネント
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Prefecture } from "@/types/prefecture";
+import CategorySelector from "../src/components/CategorySelector";
+import SelectedPrefectures from "../src/components/SelectedPrefectures";
+import PrefectureSelector from "../src/components/PrefectureSelector";
+import PopulationChart from "../src/components/PopulationChart";
+import {
+  PopulationCategoryLabel,
+  PopulationPoint,
+  PopulationCategory,
+  PopulationData,
+  ChartDataItem,
+} from "@/types/population";
+
+export default function Page() {
+  const [prefectures, setPrefectures] = useState<Prefecture[]>([]);
+  const [populationData, setPopulationData] = useState<PopulationData[]>([]);
+  const [selectedPrefCodes, setSelectedPrefCodes] = useState<number[]>([]);
+  const [selectedCategory, setSelectedCategory] =
+    useState<PopulationCategoryLabel>("総人口");
+  const categories: { label: PopulationCategoryLabel }[] = [
+    { label: "総人口" },
+    { label: "年少人口" },
+    { label: "生産年齢人口" },
+    { label: "老年人口" },
+  ];
+
+  // 都道府県の選択
+  const handleChange = (prefCode: number) => {
+    const isSelected = selectedPrefCodes.includes(prefCode);
+    if (isSelected) {
+      setSelectedPrefCodes(
+        selectedPrefCodes.filter((code) => code !== prefCode),
+      );
+    } else {
+      setSelectedPrefCodes([...selectedPrefCodes, prefCode]);
+    }
+  };
+
+  useEffect(() => {
+    fetch("/api/prefectures")
+      .then((res) => res.json())
+      .then((data) => {
+        setPrefectures(data.result);
+      });
+  }, []);
+
+  useEffect(() => {
+    const fetchPopulationData = async () => {
+      if (selectedPrefCodes.length === 0) {
+        setPopulationData([]);
+        return;
+      }
+
+      const results = await Promise.all(
+        selectedPrefCodes.map(async (code) => {
+          const response = await fetch(`/api/population?prefCode=${code}`);
+          const data = await response.json();
+
+          return {
+            prefCode: code,
+            data: data.result.data,
+          };
+        }),
+      );
+
+      setPopulationData(results);
+    };
+
+    fetchPopulationData();
+  }, [selectedPrefCodes]);
+
+  // 選択された都道府県
+  const selectedPrefectures = (prefectures || []).filter((pref) =>
+    selectedPrefCodes.includes(pref.prefCode),
+  );
+
+  // 選択されたカテゴリの人口データ
+  const basePopulation = populationData[0]?.data.find(
+    (category) => category.label === selectedCategory,
+  );
+
+  // チャートデータ
+  const chartData =
+    basePopulation?.data.map((item) => {
+      const data: ChartDataItem = {
+        year: item.year,
+      };
+
+      populationData.forEach((prefPopulation) => {
+        const pref = prefectures.find(
+          (pref) => pref.prefCode === prefPopulation.prefCode,
+        );
+
+        const population = prefPopulation.data.find(
+          (category: PopulationCategory) => category.label === selectedCategory,
+        );
+
+        const populationByYear = population?.data.find(
+          (populationItem: PopulationPoint) =>
+            populationItem.year === item.year,
+        );
+
+        if (pref && populationByYear) {
+          data[pref.prefName] = populationByYear.value;
+        }
+      });
+
+      return data;
+    }) || [];
+
+  const colors = [
+    "#8884d8",
+    "#82ca9d",
+    "#ffc658",
+    "#ff7300",
+    "#ff0000",
+    "#0088fe",
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="app">
+      <h1 className="app-title">人口構成アプリ</h1>
+
+      <section className="section">
+        <h2>■都道府県</h2>
+
+        <PrefectureSelector
+          prefectures={prefectures}
+          selectedPrefCodes={selectedPrefCodes}
+          handleChange={handleChange}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+
+      <section className="section">
+        <h2>■選択された都道府県</h2>
+
+        <SelectedPrefectures selectedPrefectures={selectedPrefectures} />
+      </section>
+
+      <section className="section">
+        <h2>■人口種別</h2>
+
+        <CategorySelector
+          categories={categories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+        />
+      </section>
+
+      <section className="section">
+        <h2>■グラフ表示</h2>
+
+        <PopulationChart
+          chartData={chartData}
+          selectedPrefectures={selectedPrefectures}
+          colors={colors}
+        />
+      </section>
+    </main>
   );
 }
