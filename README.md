@@ -1,36 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 人口構成アプリ
 
-## Getting Started
+Next.js と TypeScript を使って、都道府県ごとの人口構成をグラフで表示するアプリを作成しました。
 
-First, run the development server:
+下記に記載するのは、本来の課題要項から一部変更があったため要点をまとめました。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## ※課題仕様から変更した点※
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+本来は RESAS API を使って人口構成データを取得する想定でしたが、現在 RESAS API キーの新規取得ができなかったため、人口構成データはダミーデータで代用しています。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ダミーデータは `app/api/population/route.ts` で返すようにしていて、RESAS API の返却形式に近い形になるように作成しました。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+そのため、グラフに表示される人口数は実際の人口データではありません。
+都道府県を複数選択したときの表示や、人口種別を切り替えたときの動きを確認するためのデータとして使用しています。
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+都道府県一覧については、ゆめみ API から取得しています。
